@@ -22,6 +22,7 @@
       <nav id="site-nav" aria-label="主导航">
         <a href="#brand">品牌</a>
         <a href="#products">产品</a>
+        <a href="#catalog">完整目录</a>
         <a href="#quality">优势</a>
         <a href="#contact">联系</a>
         <button class="lang-switch" type="button" aria-label="切换中英文"><span>中</span> / EN</button>
@@ -37,7 +38,7 @@
           <h1 id="hero-title" data-zh="可靠配件，驱动每一程" data-en="Reliable parts. Ready for every mile.">可靠配件，<br>驱动每一程</h1>
           <p class="hero-lead" data-zh="依托福田汽车全球资源与渠道，为保外售后市场提供高兼容、高性价比的精品配件解决方案。" data-en="Powered by FOTON's global resources and channels, AUTOMATE delivers compatible, cost-effective parts for the automotive aftermarket.">依托福田汽车全球资源与渠道，为保外售后市场提供高兼容、高性价比的精品配件解决方案。</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#products" data-zh="探索产品" data-en="Explore products">探索产品 <span aria-hidden="true">→</span></a>
+            <a class="button button-primary" href="#catalog" data-zh="查看完整目录" data-en="View full catalog">查看完整目录 <span aria-hidden="true">→</span></a>
             <a class="button button-quiet" href="assets/FOTON-AUTOMATE-product-manual.pdf" download data-zh="下载产品手册" data-en="Download catalog">下载产品手册 <span aria-hidden="true">↓</span></a>
           </div>
         </div>
@@ -89,15 +90,64 @@
           <h3 id="product-title">保养件</h3>
           <p id="product-description">涵盖油品、冷却液、养护品、滤芯与尿素等日常保养产品。</p>
           <div id="product-tags" class="tags"><span>油品</span><span>滤芯</span><span>冷却液</span></div>
+          <a class="product-catalog-link" id="product-catalog-link" href="#catalog" data-category="maintenance" data-zh="查看该分类全部明细 →" data-en="View all details in this category →">查看该分类全部明细 →</a>
         </div>
         <div class="product-image-wrap"><img id="product-image" src="assets/product-lineup.png" alt="AUTOMATE 保养件"></div>
+      </div>
+    </section>
+
+    <section class="catalog section" id="catalog">
+      <div class="section-heading reveal">
+        <p class="section-index">03 / FULL CATALOG</p>
+        <h2 data-zh="63 页配件信息，完整在线查看" data-en="All 63 pages, available online">63 页配件信息，<br>完整在线查看</h2>
+        <p data-zh="按产品类别和系列快速定位，高清保留原厂图号、配件图号、名称、适用范围、规格与最小包装量。" data-en="Browse by category and series while preserving OEM numbers, part codes, names, applications, specifications and minimum package quantities.">按产品类别和系列快速定位，高清保留原厂图号、配件图号、名称、适用范围、规格与最小包装量。</p>
+      </div>
+      <div class="catalog-shell reveal">
+        <div class="catalog-filterbar">
+          <label class="catalog-search">
+            <span data-zh="查找类别或系列" data-en="Find a category or series">查找类别或系列</span>
+            <input id="catalog-search" type="search" placeholder="例如：滤芯 / Filter / 充电桩" autocomplete="off">
+          </label>
+          <div class="catalog-categories" id="catalog-categories" role="group" aria-label="目录分类"></div>
+        </div>
+        <div class="catalog-reader">
+          <aside class="catalog-sidebar" aria-label="目录页面">
+            <div class="catalog-results"><strong id="catalog-result-count">63</strong> <span data-zh="页内容" data-en="pages">页内容</span></div>
+            <div class="catalog-thumbnails" id="catalog-thumbnails"></div>
+          </aside>
+          <div class="catalog-main">
+            <div class="catalog-toolbar">
+              <div class="catalog-pager">
+                <button id="catalog-prev" type="button" title="上一页" aria-label="上一页">←</button>
+                <label><span data-zh="第" data-en="Page">第</span> <input id="catalog-page-input" type="number" min="1" max="63" value="1" inputmode="numeric"> <span data-zh="页 / 共 63 页" data-en="of 63">页 / 共 63 页</span></label>
+                <button id="catalog-next" type="button" title="下一页" aria-label="下一页">→</button>
+              </div>
+              <div class="catalog-view-tools">
+                <button id="catalog-zoom-out" type="button" title="缩小" aria-label="缩小">−</button>
+                <output id="catalog-zoom">100%</output>
+                <button id="catalog-zoom-in" type="button" title="放大" aria-label="放大">＋</button>
+                <button id="catalog-fullscreen" type="button" title="全屏查看" aria-label="全屏查看">⛶</button>
+              </div>
+            </div>
+            <div class="catalog-page-viewport" id="catalog-page-viewport">
+              <img id="catalog-page-image" src="assets/catalog/page-01.jpg" alt="产品手册第 1 页">
+            </div>
+            <div class="catalog-page-meta">
+              <div><span id="catalog-page-category">手册概览</span><h3 id="catalog-page-title">产品手册封面</h3></div>
+              <a id="catalog-pdf-link" href="assets/FOTON-AUTOMATE-product-manual.pdf#page=1" target="_blank" rel="noopener" data-zh="在原 PDF 中查看 ↗" data-en="Open in original PDF ↗">在原 PDF 中查看 ↗</a>
+            </div>
+            <div class="catalog-fields" aria-label="目录详细字段">
+              <span data-zh="原厂图号" data-en="OEM No.">原厂图号</span><span data-zh="配件图号" data-en="Part Code">配件图号</span><span data-zh="配件名称" data-en="Part Name">配件名称</span><span data-zh="适用范围" data-en="Application">适用范围</span><span data-zh="规格 / 尺寸" data-en="Specifications">规格 / 尺寸</span><span data-zh="最小包装量" data-en="Min. Package Qty">最小包装量</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="quality section" id="quality">
       <div class="quality-media reveal"><img src="assets/chassis.png" alt="制动鼓、减速器和底盘维修配件"></div>
       <div class="quality-copy reveal">
-        <p class="section-index">03 / ENGINEERED VALUE</p>
+        <p class="section-index">04 / ENGINEERED VALUE</p>
         <h2 data-zh="看得见的产品，背后是看不见的标准" data-en="Visible products. Standards behind every part.">看得见的产品，<br>背后是看不见的标准</h2>
         <div class="quality-list">
           <article><strong>01</strong><div><h3 data-zh="材料与工艺" data-en="Materials and process">材料与工艺</h3><p data-zh="甄选成熟供应体系与可靠材料，围绕耐久、稳定和安全进行产品设计。" data-en="Proven suppliers and reliable materials support durability, stability and safety.">甄选成熟供应体系与可靠材料，围绕耐久、稳定和安全进行产品设计。</p></div></article>
@@ -109,7 +159,7 @@
 
     <section class="energy section">
       <div class="energy-copy reveal">
-        <p class="section-index">04 / NEW ENERGY</p>
+        <p class="section-index">05 / NEW ENERGY</p>
         <h2 data-zh="从零件到补能，面向下一程" data-en="From parts to charging, ready for what is next">从零件到补能，<br>面向下一程</h2>
         <p data-zh="新能源产品覆盖充电桩、随车充与仪表等设备。智能运维、液冷控制与多重安全防护，让运营更高效、更可靠。" data-en="The new-energy range includes charging piles, portable chargers and meters. Smart maintenance, liquid cooling and layered protection improve reliability and operating efficiency.">新能源产品覆盖充电桩、随车充与仪表等设备。智能运维、液冷控制与多重安全防护，让运营更高效、更可靠。</p>
         <div class="energy-specs"><span>40-480 kW</span><span>OTA</span><span>500 A</span><span>&gt;99.9%</span></div>
@@ -119,7 +169,7 @@
 
     <section class="contact" id="contact">
       <div class="contact-inner reveal">
-        <p class="section-index">05 / GET STARTED</p>
+        <p class="section-index">06 / GET STARTED</p>
         <h2 data-zh="为你的业务找到合适配件" data-en="Find the right parts for your business">为你的业务找到<br>合适配件</h2>
         <p data-zh="准备好车型、原厂图号或配件编码，可帮助经销商更快确认适配产品。" data-en="Have your vehicle model, OEM number or part code ready to help a dealer confirm the right fit faster.">准备好车型、原厂图号或配件编码，可帮助经销商更快确认适配产品。</p>
         <div class="contact-actions">
@@ -131,6 +181,7 @@
   </main>
 
   <footer><img src="assets/brand-lockup.png" alt="FOTON AUTOMATE"><p>© 2026 FOTON AUTOMATE. Product information is based on the supplied catalog.</p></footer>
+  <script src="catalog-data.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

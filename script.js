@@ -28,6 +28,7 @@ function renderProduct(key) {
   const productImage = document.querySelector('#product-image');
   productImage.src = image;
   productImage.alt = title;
+  document.querySelector('#product-catalog-link').dataset.category = key;
 }
 
 document.querySelectorAll('[data-product]').forEach(button => button.addEventListener('click', () => {
@@ -49,3 +50,116 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
 }, { threshold: .12 });
 document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
+
+const catalogState = { category: 'all', query: '', page: 1, zoom: 1 };
+const catalogElements = {
+  categories: document.querySelector('#catalog-categories'), search: document.querySelector('#catalog-search'),
+  thumbnails: document.querySelector('#catalog-thumbnails'), resultCount: document.querySelector('#catalog-result-count'),
+  image: document.querySelector('#catalog-page-image'), viewport: document.querySelector('#catalog-page-viewport'),
+  category: document.querySelector('#catalog-page-category'), title: document.querySelector('#catalog-page-title'),
+  input: document.querySelector('#catalog-page-input'), pdfLink: document.querySelector('#catalog-pdf-link'),
+  prev: document.querySelector('#catalog-prev'), next: document.querySelector('#catalog-next'), zoom: document.querySelector('#catalog-zoom')
+};
+
+function catalogLabel(category) { return catalogCategories[category][language]; }
+function filteredCatalogPages() {
+  const query = catalogState.query.trim().toLowerCase();
+  return catalogPages.filter(page => {
+    const categoryMatch = catalogState.category === 'all' || page.category === catalogState.category;
+    const searchText = `${page.zh} ${page.en} ${catalogCategories[page.category].zh} ${catalogCategories[page.category].en} ${page.page}`.toLowerCase();
+    return categoryMatch && (!query || searchText.includes(query));
+  });
+}
+
+function renderCatalogCategories() {
+  catalogElements.categories.innerHTML = Object.entries(catalogCategories).map(([key,value]) =>
+    `<button type="button" data-catalog-category="${key}" aria-pressed="${key === catalogState.category}">${value[language]}</button>`
+  ).join('');
+  catalogElements.categories.querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
+    catalogState.category = button.dataset.catalogCategory;
+    const first = filteredCatalogPages()[0];
+    if (first) catalogState.page = first.page;
+    renderCatalog();
+  }));
+}
+
+function selectCatalogPage(pageNumber, scrollThumbnail = true) {
+  const page = catalogPages.find(item => item.page === Number(pageNumber));
+  if (!page) return;
+  catalogState.page = page.page;
+  catalogElements.image.src = page.image;
+  catalogElements.image.alt = language === 'zh' ? `产品手册第 ${page.page} 页：${page.zh}` : `Product manual page ${page.page}: ${page.en}`;
+  catalogElements.category.textContent = catalogLabel(page.category);
+  catalogElements.title.textContent = page[language];
+  catalogElements.input.value = page.page;
+  catalogElements.pdfLink.href = `assets/FOTON-AUTOMATE-product-manual.pdf#page=${page.page}`;
+  catalogElements.viewport.scrollTo({top:0,left:0});
+  document.querySelectorAll('.catalog-thumb').forEach(button => button.setAttribute('aria-current', button.dataset.page == page.page ? 'page' : 'false'));
+  if (scrollThumbnail) document.querySelector(`.catalog-thumb[data-page="${page.page}"]`)?.scrollIntoView({block:'nearest',inline:'nearest'});
+  const visiblePages = filteredCatalogPages();
+  const visibleIndex = visiblePages.findIndex(item => item.page === page.page);
+  catalogElements.prev.disabled = visibleIndex <= 0;
+  catalogElements.next.disabled = visibleIndex < 0 || visibleIndex === visiblePages.length - 1;
+  [page.page - 1,page.page + 1].filter(number => number >= 1 && number <= catalogPages.length).forEach(number => {
+    const preload = new Image(); preload.src = catalogPages[number - 1].image;
+  });
+}
+
+function renderCatalog() {
+  renderCatalogCategories();
+  const pages = filteredCatalogPages();
+  catalogElements.resultCount.textContent = pages.length;
+  catalogElements.thumbnails.innerHTML = pages.length ? pages.map(page => `
+    <button class="catalog-thumb" type="button" data-page="${page.page}" aria-current="${page.page === catalogState.page ? 'page' : 'false'}">
+      <img src="${page.image}" alt="" loading="lazy">
+      <span><strong>${language === 'zh' ? '第' : 'Page'} ${page.page} ${language === 'zh' ? '页' : ''}</strong><span>${page[language]}</span></span>
+    </button>`).join('') : `<p class="catalog-empty">${language === 'zh' ? '没有匹配的目录页面。' : 'No matching catalog pages.'}</p>`;
+  catalogElements.thumbnails.querySelectorAll('.catalog-thumb').forEach(button => button.addEventListener('click', () => selectCatalogPage(button.dataset.page, false)));
+  if (!pages.some(page => page.page === catalogState.page) && pages[0]) catalogState.page = pages[0].page;
+  selectCatalogPage(catalogState.page, false);
+}
+
+catalogElements.search.addEventListener('input', event => {
+  catalogState.query = event.target.value;
+  const first = filteredCatalogPages()[0];
+  if (first) catalogState.page = first.page;
+  renderCatalog();
+});
+catalogElements.input.addEventListener('change', event => {
+  catalogState.category = 'all'; catalogState.query = ''; catalogElements.search.value = '';
+  catalogState.page = Math.min(63, Math.max(1, Number(event.target.value) || 1)); renderCatalog();
+});
+function moveCatalogPage(offset) {
+  const pages = filteredCatalogPages();
+  const index = pages.findIndex(page => page.page === catalogState.page);
+  if (pages[index + offset]) selectCatalogPage(pages[index + offset].page);
+}
+catalogElements.prev.addEventListener('click', () => moveCatalogPage(-1));
+catalogElements.next.addEventListener('click', () => moveCatalogPage(1));
+document.querySelector('#catalog-zoom-out').addEventListener('click', () => setCatalogZoom(catalogState.zoom - .2));
+document.querySelector('#catalog-zoom-in').addEventListener('click', () => setCatalogZoom(catalogState.zoom + .2));
+document.querySelector('#catalog-fullscreen').addEventListener('click', () => catalogElements.viewport.requestFullscreen?.());
+
+function setCatalogZoom(value) {
+  catalogState.zoom = Math.min(1.8, Math.max(.6, value));
+  catalogElements.image.style.width = `${catalogState.zoom * 100}%`;
+  catalogElements.image.style.maxWidth = `${840 * catalogState.zoom}px`;
+  catalogElements.zoom.value = `${Math.round(catalogState.zoom * 100)}%`;
+}
+
+document.addEventListener('keydown', event => {
+  if (!catalogElements.viewport.matches(':fullscreen') && location.hash !== '#catalog') return;
+  if (event.key === 'ArrowLeft') moveCatalogPage(-1);
+  if (event.key === 'ArrowRight') moveCatalogPage(1);
+});
+
+document.querySelector('.lang-switch').addEventListener('click', renderCatalog);
+document.querySelector('#product-catalog-link').addEventListener('click', event => {
+  catalogState.category = event.currentTarget.dataset.category;
+  catalogState.query = '';
+  catalogElements.search.value = '';
+  const first = filteredCatalogPages()[0];
+  if (first) catalogState.page = first.page;
+  renderCatalog();
+});
+renderCatalog();

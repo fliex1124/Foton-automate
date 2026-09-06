@@ -2,6 +2,8 @@
 
 A responsive bilingual promotional website based on the supplied FOTON AUTOMATE product manual.
 
+The site includes a complete 63-page catalog reader with category filters, page navigation, zoom, fullscreen viewing, and links back to the original PDF.
+
 ## Preview locally
 
 ```powershell
