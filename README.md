@@ -1,24 +1,9 @@
-# FOTON AUTOMATE promotional website
+# AUTOMATE 配件目录 V2
 
-A responsive bilingual promotional website based on the supplied FOTON AUTOMATE product manual.
+905 条产品记录，支持搜索、筛选、收藏、产品详情和对比。学习模式已取消。
 
-The site includes a complete 63-page catalog reader with category filters, page navigation, zoom, fullscreen viewing, and links back to the original PDF.
+新增手册中提取的系列图片。图片标注“系列示意图”，不代表具体配件图号的专属实拍；没有匹配图片的记录标注“暂无对应图片”。
 
-## Preview locally
-
-```powershell
-npx serve .
-```
-
-Then open the local URL printed by the command.
-
-## Deploy with GitHub Pages
-
-1. Push this directory to a GitHub repository.
-2. Open **Settings > Pages** in the repository.
-3. Select **Deploy from a branch**, then choose `main` and `/ (root)`.
-
-## Content notes
-
-- Product facts and imagery come from the supplied 63-page manual.
-- Replace the inquiry section with an approved email, phone number, dealer locator, or form endpoint before using the site as a production lead-generation channel.
+运行：在此文件夹运行 python -m http.server，打开显示的地址。也可直接打开 index.html。
+收藏仍保存在当前浏览器，沿用上一版的收藏记录。
+文字数据经过表格结构检查和部分抽查，尚未完成全部记录的逐条人工核对。PDF 仅用于按需核对来源。

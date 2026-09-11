@@ -1,165 +1,34 @@
-const products = {
-  maintenance: { zh: ['1,000+ SKU','保养件','涵盖油品、冷却液、养护品、滤芯与尿素等日常保养产品。',['油品','滤芯','冷却液'],'assets/product-lineup.png'], en: ['1,000+ SKUs','Maintenance parts','Oils, coolants, care products, filters, urea and other routine maintenance essentials.',['Oils','Filters','Coolants'],'assets/product-lineup.png'] },
-  wear: { zh: ['1,500+ SKU','易损件','覆盖轮胎、蓄电池、电机、离合器与摩擦片等高频更换部件。',['离合器','摩擦片','蓄电池'],'assets/clutch.png'], en: ['1,500+ SKUs','Wear parts','Tires, batteries, motors, clutches, friction pads and other frequently replaced parts.',['Clutches','Friction pads','Batteries'],'assets/clutch.png'] },
-  repair: { zh: ['2,300+ SKU','维修件','覆盖发动机基础件、缸套组件、增压器、水泵与制动鼓等系统维修产品。',['发动机件','制动鼓','底盘件'],'assets/chassis.png'], en: ['2,300+ SKUs','Repair parts','Engine basics, cylinder kits, turbochargers, water pumps, brake drums and more.',['Engine parts','Brake drums','Chassis'],'assets/chassis.png'] },
-  accident: { zh: ['1,000+ SKU','事故件','包含驾驶室、灯具、保险杠与后视镜等车身事故维修部件。',['驾驶室','灯具','保险杠'],'assets/pickup.png'], en: ['1,000+ SKUs','Accident parts','Cabs, lamps, bumpers, mirrors and body repair components.',['Cabs','Lamps','Bumpers'],'assets/pickup.png'] },
-  modification: { zh: ['200+ SKU','改装件','覆盖卷帘、龙门架、地垫及皮卡功能升级配件。',['卷帘','龙门架','地垫'],'assets/pickup.png'], en: ['200+ SKUs','Modification parts','Roller shutters, gantry racks, floor mats and pickup upgrades.',['Roller shutters','Gantry racks','Floor mats'],'assets/pickup.png'] },
-  energy: { zh: ['100+ SKU','新能源配件','涵盖充电桩、随车充、仪表等新能源补能与配套设备。',['充电桩','随车充','仪表'],'assets/charging-family.png'], en: ['100+ SKUs','New-energy parts','Charging piles, portable chargers, meters and supporting equipment.',['Charging piles','Portable chargers','Meters'],'assets/charging-family.png'] }
-};
+'use strict';
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const data=window.CATALOG, items=data.items, colors=['#3977cb','#dc9a2c','#6174a3','#b88598','#5eaaa0','#788ad7'];
+let state={};try{state=JSON.parse(localStorage.getItem('automate-study-v1')||'{}')}catch{}if(!state||typeof state!=='object'||Array.isArray(state))state={};
+let mode='catalog',cat='',page=1,selected=new Set(),filtered=[],toastTimer;
+const getState=id=>state[id]||{}, norm=s=>String(s).toLowerCase().replace(/[\s（）()×*／/\-]/g,'');
+const index=new Map(items.map(p=>[p.id,norm([p.name,p.originalName,p.code,p.type,p.categoryName,...Object.values(p.fields)].join(' '))]));
+function notify(s){$('#toast').textContent=s;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,2500)}
+function persist(){try{localStorage.setItem('automate-study-v1',JSON.stringify(state))}catch{notify('浏览器未允许保存，关闭后收藏可能丢失')}}
+function setItem(id,key,value){state[id]={...getState(id),[key]:value};persist();updateStats()}
+function toggleSave(id){setItem(id,'saved',!getState(id).saved);render();return getState(id).saved}
+function updateStats(){$('#total').textContent=items.length.toLocaleString();const n=items.filter(x=>getState(x.id).saved).length;$('#saved-count').textContent=n;$('#favorite-total').innerHTML=n+'<small>条</small>';$('#image-count').innerHTML=items.filter(x=>x.image).length+'<small>条</small>'}
+function drawCategories(){$('#categories').innerHTML=data.categories.map((c,i)=>`<button data-cat="${c.id}" class="${cat===c.id?'active':''}"><span class="category-dot" style="--cat:${colors[i]}"></span>${c.name}<b>${items.filter(p=>p.category===c.id).length}</b></button>`).join('')}
+function drawTypes(){const old=$('#type').value,ts=[...new Set(items.filter(p=>!cat||p.category===cat).map(p=>p.type))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'zh'));$('#type').innerHTML='<option value="">全部产品</option>'+ts.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');if(ts.includes(old))$('#type').value=old}
+function filter(){const q=$('#search').value.trim().split(/\s+/).filter(Boolean).map(norm),type=$('#type').value;filtered=items.filter(p=>(!cat||p.category===cat)&&(!type||p.type===type)&&(mode!=='saved'||getState(p.id).saved)&&q.every(t=>index.get(p.id).includes(t)));return filtered}
+function mainSpec(p){if(p.category==='energy')return[p.fields['充电标准'],p.fields['功率'],p.fields['其他说明']].filter(Boolean).join(' · ');return p.application}
+function render(){filter();updateStats();drawCategories();$('#scope-label').textContent=data.categories.find(c=>c.id===cat)?.name||'全部分类';const max=Math.max(1,Math.ceil(filtered.length/30));page=Math.min(page,max);$('#result-title').innerHTML=esc(cat?data.categories.find(c=>c.id===cat).name:mode==='saved'?'我的收藏':'全部产品')+` <span>${filtered.length} 条记录</span>`;$('#rows').innerHTML=filtered.slice((page-1)*30,page*30).map(p=>{const st=getState(p.id);return `<tr><td><input type="checkbox" aria-label="对比 ${esc(p.code)}" data-compare="${p.id}" ${selected.has(p.id)?'checked':''}></td><td class="photo-cell">${photo(p)}</td><td><button class="product-link" data-detail="${p.id}">${esc(p.name)}<span class="partcode">${esc(p.code)}</span></button></td><td><span class="pill">${p.categoryName}</span><span class="subtype">${esc(p.type)}</span></td><td class="app-cell"><span class="truncate">${esc(mainSpec(p))}</span></td><td><button class="star ${st.saved?'selected':''}" data-save="${p.id}" aria-label="${st.saved?'取消收藏':'收藏'} ${esc(p.code)}" aria-pressed="${!!st.saved}">${st.saved?'★':'☆'}</button></td></tr>`}).join('');$('#empty').hidden=filtered.length>0;$('#page-info').textContent=filtered.length?`显示 ${(page-1)*30+1}–${Math.min(page*30,filtered.length)} 条，共 ${filtered.length} 条`:'共 0 条';$('#page-number').textContent=`${page} / ${max}`;$('#prev').disabled=page<=1;$('#next').disabled=page>=max}
+function setMode(m){mode=m;page=1;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));$('#page-title').innerHTML=m==='saved'?'我的收藏<span>SAVED</span>':'产品清单<span>CATALOG</span>';$('#page-desc').textContent=m==='saved'?'常用的配件，随时找到。':'从名称、配件图号或适用车型开始查找。';render()}
+function reset(){cat='';$('#search').value='';$('#type').value='';drawTypes();page=1;render()}
+function detail(id){const p=items.find(p=>p.id===id);if(!p)return;$('#dialog-caption').textContent='产品详情';$('#detail-content').innerHTML=`<span class="pill">${p.categoryName} / ${esc(p.type)}</span><h2 class="detail-title">${esc(p.name)}</h2><div class="partcode">${esc(p.code)}</div>${p.needsReview?'<p class="review-notice">部分文字识别待核对，请以原始手册为准。</p>':''}<div class="detail-photo">${photo(p,true)}</div><div class="detail-actions"><button class="primary" data-detail-save="${p.id}">${getState(id).saved?'★ 已收藏':'☆ 收藏产品'}</button><button class="secondary" data-copy="${id}">复制配件图号</button></div><dl>${Object.entries(p.fields).filter(([k,v])=>v&&v!=='/').map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl><p class="detail-foot">来源：产品手册第 ${p.page} 页（印刷页码 ${p.printedPage}）<br>“手册未注明”表示原文没有提供该字段。当前为手册资料清单，不含实时价格与库存。</p><a class="text-button" href="assets/FOTON-AUTOMATE-product-manual.pdf#page=${p.page}" target="_blank" rel="noopener">核对原始出处 ↗</a>`;if(!$('#detail').open)$('#detail').showModal()}
+function compareBar(){$('#compare-bar').hidden=!selected.size;$('#compare-count').textContent=`已选 ${selected.size} / 3 项`;$('#compare-open').disabled=selected.size<2}
+function showCompare(){const ps=items.filter(p=>selected.has(p.id));const keys=[...new Set(ps.flatMap(p=>Object.keys(p.fields)))];$('#dialog-caption').textContent='产品对比';$('#detail-content').innerHTML=`<h2 class="detail-title">把区别放在一起看</h2><div class="table-wrap"><table class="compare-table"><thead><tr><th>字段</th>${ps.map(p=>`<th>${esc(p.name)}<span class="partcode">${esc(p.code)}</span></th>`).join('')}</tr></thead><tbody>${keys.map(k=>`<tr><td>${esc(k)}</td>${ps.map(p=>`<td>${esc(p.fields[k]||'手册未注明')}</td>`).join('')}</tr>`).join('')}<tr><td>手册页</td>${ps.map(p=>`<td>第 ${p.page} 页</td>`).join('')}</tr></tbody></table></div>`;$('#detail').showModal()}
+$('#categories').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(!b)return;cat=cat===b.dataset.cat?'':b.dataset.cat;$('#type').value='';drawTypes();page=1;render()});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));$('#reset-cat').onclick=()=>{cat='';drawTypes();page=1;render()};$('#clear').onclick=reset;$('#empty-reset').onclick=reset;
+for(const selector of ['#search','#type'])$(selector).addEventListener(selector==='#search'?'input':'change',()=>{page=1;render()});
+$('#rows').addEventListener('click',e=>{const d=e.target.closest('[data-detail]'),s=e.target.closest('[data-save]');if(d)detail(d.dataset.detail);if(s)toggleSave(s.dataset.save)});
+$('#rows').addEventListener('change',e=>{const id=e.target.dataset.compare;if(!id)return;if(e.target.checked){if(selected.size===3){e.target.checked=false;notify('最多选择 3 个产品进行对比');return}selected.add(id)}else selected.delete(id);compareBar()});
+$('#prev').onclick=()=>{page--;render()};$('#next').onclick=()=>{page++;render()};$('#close-detail').onclick=()=>$('#detail').close();$('#detail').addEventListener('click',e=>{if(e.target===$('#detail')){const r=$('#detail').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('#detail').close()}});
+$('#detail-content').addEventListener('click',async e=>{const s=e.target.closest('[data-detail-save]'),c=e.target.closest('[data-copy]');if(s){toggleSave(s.dataset.detailSave);detail(s.dataset.detailSave)}if(c){try{await navigator.clipboard.writeText(items.find(p=>p.id===c.dataset.copy).code);notify('配件图号已复制')}catch{notify('无法自动复制，请选中图号复制')}}});
+$('#compare-open').onclick=showCompare;$('#compare-clear').onclick=()=>{selected.clear();compareBar();render()};
 
-let language = 'zh';
-const navToggle = document.querySelector('.nav-toggle');
-const nav = document.querySelector('#site-nav');
-navToggle.addEventListener('click', () => {
-  const open = nav.classList.toggle('open');
-  navToggle.setAttribute('aria-expanded', String(open));
-});
-nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
-  nav.classList.remove('open');
-  navToggle.setAttribute('aria-expanded', 'false');
-}));
-
-function renderProduct(key) {
-  const [count,title,description,tags,image] = products[key][language];
-  document.querySelector('#product-count').textContent = count;
-  document.querySelector('#product-title').textContent = title;
-  document.querySelector('#product-description').textContent = description;
-  document.querySelector('#product-tags').innerHTML = tags.map(tag => `<span>${tag}</span>`).join('');
-  const productImage = document.querySelector('#product-image');
-  productImage.src = image;
-  productImage.alt = title;
-  document.querySelector('#product-catalog-link').dataset.category = key;
-}
-
-document.querySelectorAll('[data-product]').forEach(button => button.addEventListener('click', () => {
-  document.querySelectorAll('[data-product]').forEach(item => item.setAttribute('aria-selected','false'));
-  button.setAttribute('aria-selected','true');
-  renderProduct(button.dataset.product);
-}));
-
-document.querySelector('.lang-switch').addEventListener('click', event => {
-  language = language === 'zh' ? 'en' : 'zh';
-  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
-  document.querySelectorAll('[data-zh]').forEach(node => { node.innerHTML = node.dataset[language]; });
-  event.currentTarget.innerHTML = language === 'zh' ? '<span>中</span> / EN' : '中 / <span>EN</span>';
-  const selected = document.querySelector('[data-product][aria-selected="true"]');
-  renderProduct(selected.dataset.product);
-});
-
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
-}, { threshold: .12 });
-document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
-
-const catalogState = { category: 'all', query: '', page: 1, zoom: 1 };
-const catalogElements = {
-  categories: document.querySelector('#catalog-categories'), search: document.querySelector('#catalog-search'),
-  thumbnails: document.querySelector('#catalog-thumbnails'), resultCount: document.querySelector('#catalog-result-count'),
-  image: document.querySelector('#catalog-page-image'), viewport: document.querySelector('#catalog-page-viewport'),
-  category: document.querySelector('#catalog-page-category'), title: document.querySelector('#catalog-page-title'),
-  input: document.querySelector('#catalog-page-input'), pdfLink: document.querySelector('#catalog-pdf-link'),
-  prev: document.querySelector('#catalog-prev'), next: document.querySelector('#catalog-next'), zoom: document.querySelector('#catalog-zoom')
-};
-
-function catalogLabel(category) { return catalogCategories[category][language]; }
-function filteredCatalogPages() {
-  const query = catalogState.query.trim().toLowerCase();
-  return catalogPages.filter(page => {
-    const categoryMatch = catalogState.category === 'all' || page.category === catalogState.category;
-    const searchText = `${page.zh} ${page.en} ${catalogCategories[page.category].zh} ${catalogCategories[page.category].en} ${page.page}`.toLowerCase();
-    return categoryMatch && (!query || searchText.includes(query));
-  });
-}
-
-function renderCatalogCategories() {
-  catalogElements.categories.innerHTML = Object.entries(catalogCategories).map(([key,value]) =>
-    `<button type="button" data-catalog-category="${key}" aria-pressed="${key === catalogState.category}">${value[language]}</button>`
-  ).join('');
-  catalogElements.categories.querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
-    catalogState.category = button.dataset.catalogCategory;
-    const first = filteredCatalogPages()[0];
-    if (first) catalogState.page = first.page;
-    renderCatalog();
-  }));
-}
-
-function selectCatalogPage(pageNumber, scrollThumbnail = true) {
-  const page = catalogPages.find(item => item.page === Number(pageNumber));
-  if (!page) return;
-  catalogState.page = page.page;
-  catalogElements.image.src = page.image;
-  catalogElements.image.alt = language === 'zh' ? `产品手册第 ${page.page} 页：${page.zh}` : `Product manual page ${page.page}: ${page.en}`;
-  catalogElements.category.textContent = catalogLabel(page.category);
-  catalogElements.title.textContent = page[language];
-  catalogElements.input.value = page.page;
-  catalogElements.pdfLink.href = `assets/FOTON-AUTOMATE-product-manual.pdf#page=${page.page}`;
-  catalogElements.viewport.scrollTo({top:0,left:0});
-  document.querySelectorAll('.catalog-thumb').forEach(button => button.setAttribute('aria-current', button.dataset.page == page.page ? 'page' : 'false'));
-  if (scrollThumbnail) document.querySelector(`.catalog-thumb[data-page="${page.page}"]`)?.scrollIntoView({block:'nearest',inline:'nearest'});
-  const visiblePages = filteredCatalogPages();
-  const visibleIndex = visiblePages.findIndex(item => item.page === page.page);
-  catalogElements.prev.disabled = visibleIndex <= 0;
-  catalogElements.next.disabled = visibleIndex < 0 || visibleIndex === visiblePages.length - 1;
-  [page.page - 1,page.page + 1].filter(number => number >= 1 && number <= catalogPages.length).forEach(number => {
-    const preload = new Image(); preload.src = catalogPages[number - 1].image;
-  });
-}
-
-function renderCatalog() {
-  renderCatalogCategories();
-  const pages = filteredCatalogPages();
-  catalogElements.resultCount.textContent = pages.length;
-  catalogElements.thumbnails.innerHTML = pages.length ? pages.map(page => `
-    <button class="catalog-thumb" type="button" data-page="${page.page}" aria-current="${page.page === catalogState.page ? 'page' : 'false'}">
-      <img src="${page.image}" alt="" loading="lazy">
-      <span><strong>${language === 'zh' ? '第' : 'Page'} ${page.page} ${language === 'zh' ? '页' : ''}</strong><span>${page[language]}</span></span>
-    </button>`).join('') : `<p class="catalog-empty">${language === 'zh' ? '没有匹配的目录页面。' : 'No matching catalog pages.'}</p>`;
-  catalogElements.thumbnails.querySelectorAll('.catalog-thumb').forEach(button => button.addEventListener('click', () => selectCatalogPage(button.dataset.page, false)));
-  if (!pages.some(page => page.page === catalogState.page) && pages[0]) catalogState.page = pages[0].page;
-  selectCatalogPage(catalogState.page, false);
-}
-
-catalogElements.search.addEventListener('input', event => {
-  catalogState.query = event.target.value;
-  const first = filteredCatalogPages()[0];
-  if (first) catalogState.page = first.page;
-  renderCatalog();
-});
-catalogElements.input.addEventListener('change', event => {
-  catalogState.category = 'all'; catalogState.query = ''; catalogElements.search.value = '';
-  catalogState.page = Math.min(63, Math.max(1, Number(event.target.value) || 1)); renderCatalog();
-});
-function moveCatalogPage(offset) {
-  const pages = filteredCatalogPages();
-  const index = pages.findIndex(page => page.page === catalogState.page);
-  if (pages[index + offset]) selectCatalogPage(pages[index + offset].page);
-}
-catalogElements.prev.addEventListener('click', () => moveCatalogPage(-1));
-catalogElements.next.addEventListener('click', () => moveCatalogPage(1));
-document.querySelector('#catalog-zoom-out').addEventListener('click', () => setCatalogZoom(catalogState.zoom - .2));
-document.querySelector('#catalog-zoom-in').addEventListener('click', () => setCatalogZoom(catalogState.zoom + .2));
-document.querySelector('#catalog-fullscreen').addEventListener('click', () => catalogElements.viewport.requestFullscreen?.());
-
-function setCatalogZoom(value) {
-  catalogState.zoom = Math.min(1.8, Math.max(.6, value));
-  catalogElements.image.style.width = `${catalogState.zoom * 100}%`;
-  catalogElements.image.style.maxWidth = `${840 * catalogState.zoom}px`;
-  catalogElements.zoom.value = `${Math.round(catalogState.zoom * 100)}%`;
-}
-
-document.addEventListener('keydown', event => {
-  if (!catalogElements.viewport.matches(':fullscreen') && location.hash !== '#catalog') return;
-  if (event.key === 'ArrowLeft') moveCatalogPage(-1);
-  if (event.key === 'ArrowRight') moveCatalogPage(1);
-});
-
-document.querySelector('.lang-switch').addEventListener('click', renderCatalog);
-document.querySelector('#product-catalog-link').addEventListener('click', event => {
-  catalogState.category = event.currentTarget.dataset.category;
-  catalogState.query = '';
-  catalogElements.search.value = '';
-  const first = filteredCatalogPages()[0];
-  if (first) catalogState.page = first.page;
-  renderCatalog();
-});
-renderCatalog();
+document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)&&!$('#detail').open){e.preventDefault();$('#search').focus()}});
+function photo(p,large=false){return p.image?`<figure class="part-photo ${large?'large':''}"><img src="${esc(p.image)}" alt="${esc(p.type)}系列示意图，非图号专属照片" loading="lazy"><figcaption>系列示意图${large?' · 手册第 '+p.imagePage+' 页':''}</figcaption></figure>`:'<div class="no-photo">暂无对应图片</div>'}
+drawTypes();render();
